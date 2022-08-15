@@ -4,7 +4,7 @@ import {runLottery, Pull} from '../src/lottery'
 
 const octokit = new Octokit()
 const prNumber = 123
-const ref = 'refs/pull/branch-name'
+const ref = 'noop-branch'
 const basePull = {number: prNumber, head: {ref}}
 
 const config = {
@@ -20,7 +20,7 @@ const config = {
 
 const mockGetPull = (pull: Pull) =>
   nock('https://api.github.com')
-    .get('/repos/uesteibar/repository/pulls')
+    .get('/repos/matheusalano/repository/pulls?head=matheusalano:noop-branch')
     .reply(200, [pull])
 
 test('selects in-group reviewers first, then out-group reviewers', async () => {
@@ -36,7 +36,7 @@ test('selects in-group reviewers first, then out-group reviewers', async () => {
 
   const postReviewersMock = nock('https://api.github.com')
     .post(
-      `/repos/uesteibar/repository/pulls/${prNumber}/requested_reviewers`,
+      `/repos/matheusalano/repository/pulls/${prNumber}/requested_reviewers`,
       (body): boolean => {
         expect(body.reviewers[0]).toEqual('A')
         expect(outGroupCandidates).toContain(body.reviewers[1])
@@ -47,7 +47,7 @@ test('selects in-group reviewers first, then out-group reviewers', async () => {
     .reply(200, pull)
 
   await runLottery(octokit, config, {
-    repository: 'uesteibar/repository',
+    repository: 'matheusalano/repository',
     ref
   })
 
@@ -67,7 +67,7 @@ test("doesn't assign reviewers if the PR is in draft state", async () => {
   const getPullMock = mockGetPull(pull)
 
   await runLottery(octokit, config, {
-    repository: 'uesteibar/repository',
+    repository: 'matheusalano/repository',
     ref
   })
 
@@ -88,7 +88,7 @@ test("doesn't assign in-group reviewers if the only option is a CO", async () =>
 
   const postReviewersMock = nock('https://api.github.com')
     .post(
-      `/repos/uesteibar/repository/pulls/${prNumber}/requested_reviewers`,
+      `/repos/matheusalano/repository/pulls/${prNumber}/requested_reviewers`,
       (body): boolean => {
         expect(body.reviewers).toHaveLength(2)
         body.reviewers.forEach((reviewer: string) => {
@@ -101,7 +101,7 @@ test("doesn't assign in-group reviewers if the only option is a CO", async () =>
     .reply(200, pull)
 
   await runLottery(octokit, config, {
-    repository: 'uesteibar/repository',
+    repository: 'matheusalano/repository',
     ref
   })
 
@@ -123,7 +123,7 @@ test("assign any reviewers if the author doesn't belong to any group", async () 
 
   const postReviewersMock = nock('https://api.github.com')
     .post(
-      `/repos/uesteibar/repository/pulls/${prNumber}/requested_reviewers`,
+      `/repos/matheusalano/repository/pulls/${prNumber}/requested_reviewers`,
       (body): boolean => {
         expect(body.reviewers).toHaveLength(2)
 
@@ -136,7 +136,7 @@ test("assign any reviewers if the author doesn't belong to any group", async () 
     .reply(200, pull)
 
   await runLottery(octokit, config, {
-    repository: 'uesteibar/repository',
+    repository: 'matheusalano/repository',
     ref
   })
 
