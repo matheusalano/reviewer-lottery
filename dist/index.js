@@ -8394,16 +8394,20 @@ class Lottery {
         return __awaiter(this, void 0, void 0, function* () {
             let selected = [];
             const author = yield this.getPRAuthor();
+            const ticketPrefix = (yield this.getTicketPrefix()).toUpperCase();
             const inGroupReviewersCount = this.config.in_group_reviewers;
             const totalReviewersCount = this.config.total_reviewers;
-            const groups = Object.values(this.config.groups);
+            const groups = this.config.groups;
             try {
-                const inGroupReviewers = groups.filter(item => item.includes(author))[0] || [];
-                const outGroupReviewers = groups
-                    .filter(item => !item.includes(author))
-                    .reduce((a, b) => a.concat(b), []);
+                const inGroupReviewers = groups[ticketPrefix];
+                if (inGroupReviewers == null) {
+                    const allReviewers = Object.values(groups).reduce((a, b) => a.concat(b), []);
+                    return this.pickRandom([...new Set(allReviewers)], totalReviewersCount, author);
+                }
+                delete groups[ticketPrefix];
+                const outGroupReviewers = Object.values(groups).reduce((a, b) => a.concat(b), []);
                 selected = selected.concat(this.pickRandom(inGroupReviewers, inGroupReviewersCount, author));
-                selected = selected.concat(this.pickRandom(outGroupReviewers, totalReviewersCount - selected.length, author));
+                selected = selected.concat(this.pickRandom([...new Set(outGroupReviewers)], totalReviewersCount - selected.length, author));
             }
             catch (error) {
                 core.error(error);
@@ -8431,6 +8435,27 @@ class Lottery {
             try {
                 const pr = yield this.getPR();
                 return pr ? pr.user.login : '';
+            }
+            catch (error) {
+                core.error(error);
+                core.setFailed(error);
+            }
+            return '';
+        });
+    }
+    getTicketPrefix() {
+        var _a, _b, _c, _d, _e, _f, _g;
+        return __awaiter(this, void 0, void 0, function* () {
+            try {
+                const pr = yield this.getPR();
+                const titleRegex = RegExp('(?<prefix>[a-z]+|[A-Z]+)-[0-9]+');
+                const branchRegex = RegExp(`^[a-z]+\/${titleRegex.source}\/.+$`);
+                const titlePrefix = (_c = (_b = titleRegex.exec((_a = pr === null || pr === void 0 ? void 0 : pr.title) !== null && _a !== void 0 ? _a : '')) === null || _b === void 0 ? void 0 : _b.groups) === null || _c === void 0 ? void 0 : _c.prefix;
+                const branchPrefix = (_f = (_e = branchRegex.exec((_d = pr === null || pr === void 0 ? void 0 : pr.head.ref) !== null && _d !== void 0 ? _d : '')) === null || _e === void 0 ? void 0 : _e.groups) === null || _f === void 0 ? void 0 : _f.prefix;
+                if (titlePrefix == null && branchPrefix == null) {
+                    throw new Error("Ticket prefix couldn't be found.");
+                }
+                return (_g = branchPrefix !== null && branchPrefix !== void 0 ? branchPrefix : titlePrefix) !== null && _g !== void 0 ? _g : '';
             }
             catch (error) {
                 core.error(error);
