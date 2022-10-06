@@ -3,8 +3,12 @@ import {Octokit} from '@octokit/rest'
 import {Config} from './config'
 
 export interface Pull {
+  title: string
   user: {
     login: string
+  }
+  head: {
+    ref: string
   }
   number: number
   draft: boolean
@@ -77,16 +81,33 @@ class Lottery {
     let selected: string[] = []
 
     const author = await this.getPRAuthor()
+    const ticketPrefix = (await this.getTicketPrefix()).toUpperCase()
     const inGroupReviewersCount = this.config.in_group_reviewers
     const totalReviewersCount = this.config.total_reviewers
-    const groups = Object.values(this.config.groups)
+    const groups = this.config.groups
 
     try {
-      const inGroupReviewers =
-        groups.filter(item => item.includes(author))[0] || []
-      const outGroupReviewers = groups
-        .filter(item => !item.includes(author))
-        .reduce((a, b) => a.concat(b), [])
+      const inGroupReviewers = groups[ticketPrefix]
+
+      if (inGroupReviewers == null) {
+        const allReviewers = Object.values(groups).reduce(
+          (a, b) => a.concat(b),
+          []
+        )
+
+        return this.pickRandom(
+          [...new Set(allReviewers)],
+          totalReviewersCount,
+          author
+        )
+      }
+
+      delete groups[ticketPrefix]
+
+      const outGroupReviewers = Object.values(groups).reduce(
+        (a, b) => a.concat(b),
+        []
+      )
 
       selected = selected.concat(
         this.pickRandom(inGroupReviewers, inGroupReviewersCount, author)
@@ -94,7 +115,7 @@ class Lottery {
 
       selected = selected.concat(
         this.pickRandom(
-          outGroupReviewers,
+          [...new Set(outGroupReviewers)],
           totalReviewersCount - selected.length,
           author
         )
@@ -132,6 +153,29 @@ class Lottery {
       const pr = await this.getPR()
 
       return pr ? pr.user.login : ''
+    } catch (error) {
+      core.error(error)
+      core.setFailed(error)
+    }
+
+    return ''
+  }
+
+  async getTicketPrefix(): Promise<string> {
+    try {
+      const pr = await this.getPR()
+
+      const titleRegex = RegExp('(?<prefix>[a-z]+|[A-Z]+)-[0-9]+')
+      const branchRegex = RegExp(`^[a-z]+\/${titleRegex.source}\/.+$`)
+
+      const titlePrefix = titleRegex.exec(pr?.title ?? '')?.groups?.prefix
+      const branchPrefix = branchRegex.exec(pr?.head.ref ?? '')?.groups?.prefix
+
+      if (titlePrefix == null && branchPrefix == null) {
+        throw new Error("Ticket prefix couldn't be found.")
+      }
+
+      return branchPrefix ?? titlePrefix ?? ''
     } catch (error) {
       core.error(error)
       core.setFailed(error)
