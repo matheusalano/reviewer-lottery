@@ -8407,7 +8407,7 @@ class Lottery {
                 delete groups[ticketPrefix];
                 const outGroupReviewers = Object.values(groups).reduce((a, b) => a.concat(b), []);
                 selected = selected.concat(this.pickRandom(inGroupReviewers, inGroupReviewersCount, author));
-                selected = selected.concat(this.pickRandom([...new Set(outGroupReviewers)], totalReviewersCount - selected.length, author));
+                selected = selected.concat(this.pickRandom([...new Set(outGroupReviewers)], totalReviewersCount - selected.length, author, selected));
             }
             catch (error) {
                 core.error(error);
@@ -8416,8 +8416,8 @@ class Lottery {
             return selected;
         });
     }
-    pickRandom(items, n, ignore) {
-        const picks = [];
+    pickRandom(items, n, ignore, selected = []) {
+        const picks = selected;
         const codeowners = this.config.codeowners;
         const candidates = items.filter(item => item !== ignore && !codeowners.includes(item));
         if (candidates.length === 0)

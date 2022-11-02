@@ -117,7 +117,8 @@ class Lottery {
         this.pickRandom(
           [...new Set(outGroupReviewers)],
           totalReviewersCount - selected.length,
-          author
+          author,
+          selected
         )
       )
     } catch (error) {
@@ -128,8 +129,13 @@ class Lottery {
     return selected
   }
 
-  pickRandom(items: string[], n: number, ignore: string): string[] {
-    const picks: string[] = []
+  pickRandom(
+    items: string[],
+    n: number,
+    ignore: string,
+    selected: string[] = []
+  ): string[] {
+    const picks = selected
 
     const codeowners = this.config.codeowners
     const candidates = items.filter(
