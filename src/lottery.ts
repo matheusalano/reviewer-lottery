@@ -98,7 +98,7 @@ class Lottery {
         return this.pickRandom(
           [...new Set(allReviewers)],
           totalReviewersCount,
-          author
+          [author]
         )
       }
 
@@ -110,15 +110,14 @@ class Lottery {
       )
 
       selected = selected.concat(
-        this.pickRandom(inGroupReviewers, inGroupReviewersCount, author)
+        this.pickRandom(inGroupReviewers, inGroupReviewersCount, [author])
       )
 
       selected = selected.concat(
         this.pickRandom(
           [...new Set(outGroupReviewers)],
           totalReviewersCount - selected.length,
-          author,
-          selected
+          [...selected, author]
         )
       )
     } catch (error) {
@@ -129,17 +128,12 @@ class Lottery {
     return selected
   }
 
-  pickRandom(
-    items: string[],
-    n: number,
-    ignore: string,
-    selected: string[] = []
-  ): string[] {
-    const picks = selected
+  pickRandom(items: string[], n: number, ignore: string[]): string[] {
+    const picks: string[] = []
 
     const codeowners = this.config.codeowners
     const candidates = items.filter(
-      item => item !== ignore && !codeowners.includes(item)
+      item => !ignore.includes(item) && !codeowners.includes(item)
     )
 
     if (candidates.length === 0) return []

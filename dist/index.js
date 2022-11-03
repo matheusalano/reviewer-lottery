@@ -8402,12 +8402,12 @@ class Lottery {
                 const inGroupReviewers = groups[ticketPrefix];
                 if (inGroupReviewers == null) {
                     const allReviewers = Object.values(groups).reduce((a, b) => a.concat(b), []);
-                    return this.pickRandom([...new Set(allReviewers)], totalReviewersCount, author);
+                    return this.pickRandom([...new Set(allReviewers)], totalReviewersCount, [author]);
                 }
                 delete groups[ticketPrefix];
                 const outGroupReviewers = Object.values(groups).reduce((a, b) => a.concat(b), []);
-                selected = selected.concat(this.pickRandom(inGroupReviewers, inGroupReviewersCount, author));
-                selected = selected.concat(this.pickRandom([...new Set(outGroupReviewers)], totalReviewersCount - selected.length, author, selected));
+                selected = selected.concat(this.pickRandom(inGroupReviewers, inGroupReviewersCount, [author]));
+                selected = selected.concat(this.pickRandom([...new Set(outGroupReviewers)], totalReviewersCount - selected.length, [...selected, author]));
             }
             catch (error) {
                 core.error(error);
@@ -8416,10 +8416,10 @@ class Lottery {
             return selected;
         });
     }
-    pickRandom(items, n, ignore, selected = []) {
-        const picks = selected;
+    pickRandom(items, n, ignore) {
+        const picks = [];
         const codeowners = this.config.codeowners;
-        const candidates = items.filter(item => item !== ignore && !codeowners.includes(item));
+        const candidates = items.filter(item => !ignore.includes(item) && !codeowners.includes(item));
         if (candidates.length === 0)
             return [];
         while (picks.length < n) {
