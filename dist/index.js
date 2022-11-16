@@ -7947,7 +7947,7 @@ exports.getConfig = () => {
     catch (error) {
         core.setFailed(error.message);
     }
-    return { total_reviewers: 0, in_group_reviewers: 0, codeowners: [], groups: {} }; // eslint-disable-line @typescript-eslint/camelcase
+    return { total_reviewers: 0, in_group_reviewers: 0, codeowners: {}, groups: {} }; // eslint-disable-line @typescript-eslint/camelcase
 };
 
 
@@ -8391,22 +8391,30 @@ class Lottery {
         });
     }
     selectReviewers() {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             let selected = [];
             const author = yield this.getPRAuthor();
             const ticketPrefix = (yield this.getTicketPrefix()).toUpperCase();
             const inGroupReviewersCount = this.config.in_group_reviewers;
-            const totalReviewersCount = this.config.total_reviewers;
+            let totalReviewersCount = this.config.total_reviewers;
             const groups = this.config.groups;
             try {
                 const inGroupReviewers = groups[ticketPrefix];
+                const inGroupCodeowners = ((_a = this.config.codeowners[ticketPrefix]) !== null && _a !== void 0 ? _a : []).filter(item => item !== author);
                 if (inGroupReviewers == null) {
                     const allReviewers = Object.values(groups).reduce((a, b) => a.concat(b), []);
                     return this.pickRandom([...new Set(allReviewers)], totalReviewersCount, [author]);
                 }
                 delete groups[ticketPrefix];
                 const outGroupReviewers = Object.values(groups).reduce((a, b) => a.concat(b), []);
-                selected = selected.concat(this.pickRandom(inGroupReviewers, inGroupReviewersCount, [author]));
+                selected = selected.concat(inGroupCodeowners);
+                // This is to prevent the in-group codeowners from impacting the count of the out-group reviewers.
+                totalReviewersCount = totalReviewersCount + inGroupCodeowners.length;
+                selected = selected.concat(this.pickRandom(inGroupReviewers, inGroupReviewersCount, [
+                    ...selected,
+                    author
+                ]));
                 selected = selected.concat(this.pickRandom([...new Set(outGroupReviewers)], totalReviewersCount - selected.length, [...selected, author]));
             }
             catch (error) {
@@ -8418,7 +8426,7 @@ class Lottery {
     }
     pickRandom(items, n, ignore) {
         const picks = [];
-        const codeowners = this.config.codeowners;
+        const codeowners = this.config.codeowners['FULL'];
         const candidates = items.filter(item => !ignore.includes(item) && !codeowners.includes(item));
         if (candidates.length === 0)
             return [];
