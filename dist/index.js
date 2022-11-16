@@ -8422,7 +8422,7 @@ class Lottery {
         const candidates = items.filter(item => !ignore.includes(item) && !codeowners.includes(item));
         if (candidates.length === 0)
             return [];
-        while (picks.length < n) {
+        while (picks.length < Math.min(n, candidates.length + 1)) {
             const random = Math.floor(Math.random() * candidates.length);
             const pick = candidates.splice(random, 1)[0];
             if (!picks.includes(pick))
