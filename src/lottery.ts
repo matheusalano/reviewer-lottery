@@ -94,6 +94,8 @@ class Lottery {
       ).filter(item => item !== author)
 
       if (inGroupReviewers == null) {
+        console.debug(`Group for ticket ${ticketPrefix} could not be found!`)
+
         const allReviewers = Object.values(groups).reduce(
           (a, b) => a.concat(b),
           []
@@ -113,11 +115,13 @@ class Lottery {
         []
       )
 
+      console.debug(`Selecting in-group codeowners: ${inGroupCodeowners}`)
       selected = selected.concat(inGroupCodeowners)
 
       // This is to prevent the in-group codeowners from impacting the count of the out-group reviewers.
       totalReviewersCount = totalReviewersCount + inGroupCodeowners.length
 
+      console.debug(`Selecting in-group reviewers`)
       selected = selected.concat(
         this.pickRandom(inGroupReviewers, inGroupReviewersCount, [
           ...selected,
@@ -125,6 +129,7 @@ class Lottery {
         ])
       )
 
+      console.debug(`Selecting out-group reviewers`)
       selected = selected.concat(
         this.pickRandom(
           [...new Set(outGroupReviewers)],
@@ -148,6 +153,8 @@ class Lottery {
       item => !ignore.includes(item) && !codeowners.includes(item)
     )
 
+    console.debug(`Selecting max of ${n} from ${candidates}`)
+
     if (candidates.length === 0) return []
 
     while (picks.length < Math.min(n, candidates.length + 1)) {
@@ -156,6 +163,8 @@ class Lottery {
 
       if (!picks.includes(pick)) picks.push(pick)
     }
+
+    console.debug(`Selected: ${picks}.`)
 
     return picks
   }

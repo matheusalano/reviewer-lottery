@@ -8403,18 +8403,22 @@ class Lottery {
                 const inGroupReviewers = groups[ticketPrefix];
                 const inGroupCodeowners = ((_a = this.config.codeowners[ticketPrefix]) !== null && _a !== void 0 ? _a : []).filter(item => item !== author);
                 if (inGroupReviewers == null) {
+                    console.debug(`Group for ticket ${ticketPrefix} could not be found!`);
                     const allReviewers = Object.values(groups).reduce((a, b) => a.concat(b), []);
                     return this.pickRandom([...new Set(allReviewers)], totalReviewersCount, [author]);
                 }
                 delete groups[ticketPrefix];
                 const outGroupReviewers = Object.values(groups).reduce((a, b) => a.concat(b), []);
+                console.debug(`Selecting in-group codeowners: ${inGroupCodeowners}`);
                 selected = selected.concat(inGroupCodeowners);
                 // This is to prevent the in-group codeowners from impacting the count of the out-group reviewers.
                 totalReviewersCount = totalReviewersCount + inGroupCodeowners.length;
+                console.debug(`Selecting in-group reviewers`);
                 selected = selected.concat(this.pickRandom(inGroupReviewers, inGroupReviewersCount, [
                     ...selected,
                     author
                 ]));
+                console.debug(`Selecting out-group reviewers`);
                 selected = selected.concat(this.pickRandom([...new Set(outGroupReviewers)], totalReviewersCount - selected.length, [...selected, author]));
             }
             catch (error) {
@@ -8428,6 +8432,7 @@ class Lottery {
         const picks = [];
         const codeowners = this.config.codeowners['FULL'];
         const candidates = items.filter(item => !ignore.includes(item) && !codeowners.includes(item));
+        console.debug(`Selecting max of ${n} from ${candidates}`);
         if (candidates.length === 0)
             return [];
         while (picks.length < Math.min(n, candidates.length + 1)) {
@@ -8436,6 +8441,7 @@ class Lottery {
             if (!picks.includes(pick))
                 picks.push(pick);
         }
+        console.debug(`Selected: ${picks}.`);
         return picks;
     }
     getPRAuthor() {
