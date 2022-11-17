@@ -5,7 +5,7 @@ import fs from 'fs'
 export interface Config {
   total_reviewers: number
   in_group_reviewers: number
-  codeowners: string[]
+  codeowners: {[key: string]: string[]}
   groups: {[key: string]: string[]}
 }
 
@@ -26,5 +26,5 @@ export const getConfig = (): Config => {
     core.setFailed(error.message)
   }
 
-  return {total_reviewers: 0, in_group_reviewers: 0, codeowners: [], groups: {}} // eslint-disable-line @typescript-eslint/camelcase
+  return {total_reviewers: 0, in_group_reviewers: 0, codeowners: {}, groups: {}} // eslint-disable-line @typescript-eslint/camelcase
 }

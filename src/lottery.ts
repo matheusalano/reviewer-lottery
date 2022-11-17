@@ -83,11 +83,15 @@ class Lottery {
     const author = await this.getPRAuthor()
     const ticketPrefix = (await this.getTicketPrefix()).toUpperCase()
     const inGroupReviewersCount = this.config.in_group_reviewers
-    const totalReviewersCount = this.config.total_reviewers
+    let totalReviewersCount = this.config.total_reviewers
     const groups = this.config.groups
 
     try {
       const inGroupReviewers = groups[ticketPrefix]
+
+      const inGroupCodeowners = (
+        this.config.codeowners[ticketPrefix] ?? []
+      ).filter(item => item !== author)
 
       if (inGroupReviewers == null) {
         const allReviewers = Object.values(groups).reduce(
@@ -109,8 +113,16 @@ class Lottery {
         []
       )
 
+      selected = selected.concat(inGroupCodeowners)
+
+      // This is to prevent the in-group codeowners from impacting the count of the out-group reviewers.
+      totalReviewersCount = totalReviewersCount + inGroupCodeowners.length
+
       selected = selected.concat(
-        this.pickRandom(inGroupReviewers, inGroupReviewersCount, [author])
+        this.pickRandom(inGroupReviewers, inGroupReviewersCount, [
+          ...selected,
+          author
+        ])
       )
 
       selected = selected.concat(
@@ -131,7 +143,7 @@ class Lottery {
   pickRandom(items: string[], n: number, ignore: string[]): string[] {
     const picks: string[] = []
 
-    const codeowners = this.config.codeowners
+    const codeowners = this.config.codeowners['FULL']
     const candidates = items.filter(
       item => !ignore.includes(item) && !codeowners.includes(item)
     )
