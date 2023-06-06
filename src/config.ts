@@ -13,7 +13,7 @@ export const getConfig = (): Config => {
   const configPath = core.getInput('config', {required: true})
 
   try {
-    const config = yaml.safeLoad(fs.readFileSync(configPath, 'utf8')) as Config
+    const config = yaml.load(fs.readFileSync(configPath, 'utf8')) as Config
 
     if (config.in_group_reviewers > config.total_reviewers) {
       throw new Error(
@@ -22,9 +22,9 @@ export const getConfig = (): Config => {
     }
 
     return config
-  } catch (error) {
+  } catch (error: any) {
     core.setFailed(error.message)
   }
 
-  return {total_reviewers: 0, in_group_reviewers: 0, codeowners: {}, groups: {}} // eslint-disable-line @typescript-eslint/camelcase
+  return {total_reviewers: 0, in_group_reviewers: 0, codeowners: {}, groups: {}}
 }

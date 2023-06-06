@@ -4,14 +4,10 @@ import {Config} from './config'
 
 export interface Pull {
   title: string
-  user: {
-    login: string
-  }
-  head: {
-    ref: string
-  }
+  user: {login: string} | null
+  head: {ref: string}
   number: number
-  draft: boolean
+  draft?: boolean
 }
 interface Env {
   repository: string
@@ -22,7 +18,7 @@ class Lottery {
   octokit: Octokit
   config: Config
   env: Env
-  pr: Pull | undefined
+  pr: Pull | undefined | null
 
   constructor({
     octokit,
@@ -49,7 +45,7 @@ class Lottery {
         const reviewers = await this.selectReviewers()
         reviewers.length > 0 && (await this.setReviewers(reviewers))
       }
-    } catch (error) {
+    } catch (error: any) {
       core.error(error)
       core.setFailed(error)
     }
@@ -59,7 +55,7 @@ class Lottery {
     try {
       const pr = await this.getPR()
       return !!pr && !pr.draft
-    } catch (error) {
+    } catch (error: any) {
       core.error(error)
       core.setFailed(error)
       return false
@@ -72,7 +68,7 @@ class Lottery {
 
     return this.octokit.pulls.requestReviewers({
       ...ownerAndRepo,
-      pull_number: pr, // eslint-disable-line @typescript-eslint/camelcase
+      pull_number: pr,
       reviewers: reviewers.filter((r: string | undefined) => !!r)
     })
   }
@@ -137,7 +133,7 @@ class Lottery {
           [...selected, author]
         )
       )
-    } catch (error) {
+    } catch (error: any) {
       core.error(error)
       core.setFailed(error)
     }
@@ -173,8 +169,8 @@ class Lottery {
     try {
       const pr = await this.getPR()
 
-      return pr ? pr.user.login : ''
-    } catch (error) {
+      return pr && pr.user ? pr.user.login : ''
+    } catch (error: any) {
       core.error(error)
       core.setFailed(error)
     }
@@ -197,7 +193,7 @@ class Lottery {
       }
 
       return branchPrefix ?? titlePrefix ?? ''
-    } catch (error) {
+    } catch (error: any) {
       core.error(error)
       core.setFailed(error)
     }
@@ -235,7 +231,7 @@ class Lottery {
       }
 
       return this.pr
-    } catch (error) {
+    } catch (error: any) {
       core.error(error)
       core.setFailed(error)
 
