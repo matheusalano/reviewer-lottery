@@ -11,6 +11,9 @@ inputs:
   config:
     description: 'Path to config file'
     default: '.github/reviewer-lottery.yml'
+  history-file:
+    description: 'Path to review history file'
+    default: 'review-history.json'
 runs:
   using: 'node16'
   main: 'dist/index.js'

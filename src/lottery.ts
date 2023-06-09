@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 import {Octokit} from '@octokit/rest'
 import {Config} from './config'
+import {History, Reviewer} from './history'
 
 export interface Pull {
   title: string
@@ -18,19 +19,23 @@ class Lottery {
   octokit: Octokit
   config: Config
   env: Env
+  history: History[]
   pr: Pull | undefined | null
 
   constructor({
     octokit,
     config,
+    history,
     env
   }: {
     octokit: Octokit
     config: Config
+    history: History[]
     env: Env
   }) {
     this.octokit = octokit
     this.config = config
+    this.history = history
     this.env = {
       repository: env.repository,
       ref: env.ref
@@ -89,18 +94,28 @@ class Lottery {
         this.config.codeowners[ticketPrefix] ?? []
       ).filter(item => item !== author)
 
+      const allReviewersObject = Object.values(groups).reduce(
+        (a, b) => a.concat(b),
+        []
+      )
+      const allReviewers = [...new Set(allReviewersObject)]
+
+      let authorHistory = this.history.filter(history => history.author === author).shift()
+      if (typeof authorHistory === 'undefined') {
+        authorHistory = {
+          author: author,
+          reviewers: []
+        }
+      }
+
       if (inGroupReviewers == null) {
         console.debug(`Group for ticket ${ticketPrefix} could not be found!`)
 
-        const allReviewers = Object.values(groups).reduce(
-          (a, b) => a.concat(b),
-          []
-        )
-
         return this.pickRandom(
-          [...new Set(allReviewers)],
+          allReviewers,
           totalReviewersCount,
-          [author]
+          [author],
+          authorHistory
         )
       }
 
@@ -122,7 +137,8 @@ class Lottery {
         this.pickRandom(inGroupReviewers, inGroupReviewersCount, [
           ...selected,
           author
-        ])
+        ],
+        authorHistory)
       )
 
       console.debug(`Selecting out-group reviewers`)
@@ -130,7 +146,8 @@ class Lottery {
         this.pickRandom(
           [...new Set(outGroupReviewers)],
           totalReviewersCount - selected.length,
-          [...selected, author]
+          [...selected, author],
+          authorHistory
         )
       )
     } catch (error: any) {
@@ -141,7 +158,7 @@ class Lottery {
     return selected
   }
 
-  pickRandom(items: string[], n: number, ignore: string[]): string[] {
+  pickRandom(items: string[], n: number, ignore: string[], history: History): string[] {
     const picks: string[] = []
 
     const codeowners = this.config.codeowners['FULL']
@@ -153,16 +170,50 @@ class Lottery {
 
     if (candidates.length === 0) return []
 
+    const reviewers: Reviewer[] = []
+    for (const item in items) {
+      let reviewer = history.reviewers.find((reviewer => reviewer.reviewer === item))
+      if (typeof reviewer === 'undefined') {
+        reviewer = { reviewer: item,  count: 0 }
+        history.reviewers.push(reviewer)
+      }
+      reviewers.push(reviewer)
+    }
+
+    reviewers.sort((a, b) => b.count - a.count)
+
     while (picks.length < Math.min(n, candidates.length + 1)) {
-      const random = Math.floor(Math.random() * candidates.length)
-      const pick = candidates.splice(random, 1)[0]
+      const pick = this.pickRandomReviewer(reviewers)
 
       if (!picks.includes(pick)) picks.push(pick)
     }
 
+    history.reviewers.sort((a, b) => b.count - a.count)
+
     console.debug(`Selected: ${picks}.`)
 
     return picks
+  }
+
+  pickRandomReviewer(reviewers: Reviewer[]): string {
+    const totalReviews = reviewers.reduce((total, current) => total + current.count, 0)
+    const random = Math.floor(Math.random() * totalReviews)
+
+    let topReviewerCount = reviewers[0].count
+
+    for (let index = 0; index < reviewers.length; index++) {
+      const reviewer = reviewers[index]
+
+      if (random < topReviewerCount || index == reviewers.length - 1) {
+        reviewer.count += 1
+        return reviewer.reviewer
+      }
+      topReviewerCount += reviewers[index + 1].count
+    }
+
+    const reviewer = reviewers[reviewers.length - 1]
+    reviewer.count += 1
+    return reviewer.reviewer
   }
 
   async getPRAuthor(): Promise<string> {
@@ -243,12 +294,13 @@ class Lottery {
 export const runLottery = async (
   octokit: Octokit,
   config: Config,
+  history: History[],
   env = {
     repository: process.env.GITHUB_REPOSITORY || '',
     ref: process.env.GITHUB_HEAD_REF || ''
   }
 ): Promise<void> => {
-  const lottery = new Lottery({octokit, config, env})
+  const lottery = new Lottery({octokit, config, history, env})
 
   await lottery.run()
 }
