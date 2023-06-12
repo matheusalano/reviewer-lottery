@@ -199,16 +199,16 @@ class Lottery {
     const totalReviews = reviewers.reduce((total, current) => total + current.count, 0)
     const random = Math.floor(Math.random() * totalReviews)
 
-    let reviewerCount = reviewers[0].count
+    let weight = totalReviews - reviewers[0].count
 
     for (let index = 0; index < reviewers.length; index++) {
       const reviewer = reviewers[index]
 
-      if (random < reviewerCount || index == reviewers.length - 1) {
+      if (random < weight || index == reviewers.length - 1) {
         reviewer.count += 1
         return reviewer.reviewer
       }
-      reviewerCount += reviewers[index + 1].count
+      weight += reviewers[index + 1].count
     }
 
     const reviewer = reviewers[reviewers.length - 1]
