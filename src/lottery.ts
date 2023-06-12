@@ -208,7 +208,7 @@ class Lottery {
         reviewer.count += 1
         return reviewer.reviewer
       }
-      weight += reviewers[index + 1].count
+      weight -= reviewers[index + 1].count
     }
 
     const reviewer = reviewers[reviewers.length - 1]
