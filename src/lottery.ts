@@ -180,7 +180,7 @@ class Lottery {
       reviewers.push(reviewer)
     }
 
-    reviewers.sort((a, b) => b.count - a.count)
+    reviewers.sort((a, b) => a.count - b.count)
 
     while (picks.length < Math.min(n, candidates.length + 1)) {
       const pick = this.pickRandomReviewer(reviewers)
@@ -188,7 +188,7 @@ class Lottery {
       if (!picks.includes(pick)) picks.push(pick)
     }
 
-    history.reviewers.sort((a, b) => b.count - a.count)
+    history.reviewers.sort((a, b) => a.count - b.count)
 
     console.debug(`Selected: ${picks}.`)
 
@@ -199,16 +199,16 @@ class Lottery {
     const totalReviews = reviewers.reduce((total, current) => total + current.count, 0)
     const random = Math.floor(Math.random() * totalReviews)
 
-    let topReviewerCount = reviewers[0].count
+    let reviewerCount = reviewers[0].count
 
     for (let index = 0; index < reviewers.length; index++) {
       const reviewer = reviewers[index]
 
-      if (random < topReviewerCount || index == reviewers.length - 1) {
+      if (random < reviewerCount || index == reviewers.length - 1) {
         reviewer.count += 1
         return reviewer.reviewer
       }
-      topReviewerCount += reviewers[index + 1].count
+      reviewerCount += reviewers[index + 1].count
     }
 
     const reviewer = reviewers[reviewers.length - 1]
